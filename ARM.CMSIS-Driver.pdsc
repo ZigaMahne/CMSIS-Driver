@@ -446,4 +446,16 @@
     </component>
   </components>
 
+  <clayers>
+    <clayer name="ESP8266" type="WiFiDriver" file="WiFi/ESP8266/ESP8266.clayer.yml" condition="CMSIS Core with RTOS2 and USART Driver">
+      <description>"Espressif ESP8266 WiFi Driver layer"</description>
+    </clayer>
+    <clayer name="ISM43362" type="WiFiDriver" file="WiFi/ISM43362/ISM43362.clayer.yml" condition="CMSIS Core with RTOS2 and SPI Driver">
+      <description>"Inventek ISM43362 WiFi Driver layer"</description>
+    </clayer>
+    <clayer name="WizFi360" type="WiFiDriver" file="WiFi/WizFi360/WizFi360.clayer.yml" condition="CMSIS Core with RTOS2 and USART Driver">
+      <description>"WIZnet WizFi360 WiFi Driver layer"</description>
+    </clayer>    
+  </clayers>
+
 </package>

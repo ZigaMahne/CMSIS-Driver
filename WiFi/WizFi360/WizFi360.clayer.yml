@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Open-CMSIS-Pack/devtools/schemas/projmgr/1.4.0/tools/projmgr/schemas/clayer.schema.json
+
+layer:
+  # type: WiFiDriver
+  # name: WizFi360
+  description: WizFi360 WiFi interface
+
+   connections:
+     - connect: WizFi360
+       consumes:
+        - RTOS2
+        - A_UART: *    # Arduino module
+       provides:
+        - C_WiFi: 0    # Arduino module
+
+  # packs:
+  #   - pack: ARM::CMSIS
+  #   - pack: ARM::CMSIS-Driver
+  #   - pack: Keil::ARM_Compiler
+
+  # add-path:
+  #   - .
+
+  components:
+    - component: Keil::CMSIS Driver:WiFi:WizFi360&UART
