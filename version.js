@@ -1,5 +1,6 @@
 //--- list of versions ---
 const versions = {
+    "doc": "2.10.1-dev21",
     "main": "2.10.1-dev7",
     "latest": "2.10.0",
     "2.9.0": "2.9.0",
