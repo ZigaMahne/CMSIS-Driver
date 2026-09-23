@@ -45,6 +45,10 @@
 #define ETH_PHY_NUM             0       /* Default driver number             */
 #endif
 
+#ifndef ETH_PHY_ADDR
+#define ETH_PHY_ADDR            0x01    /* Default device address            */
+#endif
+
 /* Driver Version */
 static const ARM_DRIVER_VERSION DriverVersion = {
   ARM_ETH_PHY_API_VERSION,
@@ -97,43 +101,6 @@ static int32_t ReadPhysr (uint16_t *data) {
   }
 
   return status;
-}
-
-/**
-  \fn          int32_t ScanPhyAddress (void)
-  \brief       Find and identify the RTL8211 on the MDIO bus.
-  \details     Mirrors the address scan performed by the ST reference driver:
-               the first address returning a valid (non 0xFFFF) PHY ID 1 is
-               used; the device is then verified to be an RTL8211.
-*/
-static int32_t ScanPhyAddress (void) {
-  uint16_t id1;
-  uint16_t id2;
-  uint8_t  addr;
-  int32_t  status;
-
-  for (addr = 0U; addr <= RTL8211_PHY_ADDR_MAX; addr++) {
-    id1 = RTL8211_PHYID_INVALID;
-    if (PHY.reg_rd(addr, RTL8211_PHYID1, &id1) != ARM_DRIVER_OK) {
-      continue;
-    }
-    if (id1 == RTL8211_PHYID_INVALID) {
-      continue;
-    }
-
-    status = PHY.reg_rd(addr, RTL8211_PHYID2, &id2);
-    if (status != ARM_DRIVER_OK) {
-      return status;
-    }
-
-    if ((id1 == RTL8211_PHYID1_DEFAULT) &&
-        ((id2 & RTL8211_PHYID2_MASK) == RTL8211_PHYID2_DEFAULT)) {
-      PHY.addr = addr;
-      return ARM_DRIVER_OK;
-    }
-  }
-
-  return ARM_DRIVER_ERROR_UNSUPPORTED;
 }
 
 /**
@@ -326,7 +293,7 @@ static int32_t Initialize (ARM_ETH_PHY_Read_t fn_read, ARM_ETH_PHY_Write_t fn_wr
     PHY.reg_rd = fn_read;
     PHY.reg_wr = fn_write;
     PHY.bcr    = 0U;
-    PHY.addr   = 0U;
+    PHY.addr   = ETH_PHY_ADDR;
     PHY.flags  = PHY_INIT;
   }
 
@@ -388,10 +355,22 @@ static int32_t PowerControl (ARM_POWER_STATE state) {
         return ARM_DRIVER_OK;
       }
 
-      /* Locate and identify the RTL8211 on the MDIO bus. */
-      status = ScanPhyAddress();
+      /* Check Device Identification. */
+      status = phy_read(RTL8211_PHYID1, &val);
       if (status != ARM_DRIVER_OK) {
         return status;
+      }
+      if (val != RTL8211_PHYID1_DEFAULT) {
+        /* Invalid PHY ID */
+        return ARM_DRIVER_ERROR_UNSUPPORTED;
+      }
+      status = phy_read(RTL8211_PHYID2, &val);
+      if (status != ARM_DRIVER_OK) {
+        return status;
+      }
+      if ((val & RTL8211_PHYID2_MASK) != RTL8211_PHYID2_DEFAULT) {
+        /* Invalid PHY ID */
+        return ARM_DRIVER_ERROR_UNSUPPORTED;
       }
 
       /* Software reset and mandatory post-reset stabilization. */
