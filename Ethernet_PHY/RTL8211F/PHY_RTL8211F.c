@@ -246,11 +246,17 @@ static int32_t ConfigureAutoNegotiation (void) {
     return status;
   }
 
-  val = RTL8211_ANAR_SELECTOR_802_3 |
-        RTL8211_ANAR_10BT_HD        |
-        RTL8211_ANAR_10BT_FD        |
-        RTL8211_ANAR_100BTX_HD      |
-        RTL8211_ANAR_100BTX_FD;
+  if ((PHY.flags & PHY_FORCE_GIGABIT) == 0U) {
+    val = RTL8211_ANAR_SELECTOR_802_3 |
+          RTL8211_ANAR_10BT_HD        |
+          RTL8211_ANAR_10BT_FD        |
+          RTL8211_ANAR_100BTX_HD      |
+          RTL8211_ANAR_100BTX_FD;
+  }
+  else {
+    /* Advertise no 10/100BASE-T capabilities. */
+    val = RTL8211_ANAR_SELECTOR_802_3;
+  }
 
   status = phy_write(RTL8211_ANAR, val);
   if (status != ARM_DRIVER_OK) {
@@ -258,6 +264,7 @@ static int32_t ConfigureAutoNegotiation (void) {
   }
 
 #if (RTL8211_ADVERTISE_1000 != 0U)
+  /* Advertise 1000BASE-T Full Duplex. */
   val = RTL8211_GBCR_1000BT_FD;
 #else
   val = 0U;
@@ -468,6 +475,7 @@ static int32_t SetMode (uint32_t mode) {
     return ARM_DRIVER_ERROR;
   }
 
+  PHY.flags &= ~PHY_FORCE_GIGABIT;
   val     = PHY.bcr & RTL8211_BMCR_POWER_DOWN;
   autoneg = (mode & ARM_ETH_PHY_AUTO_NEGOTIATE);
 
@@ -478,6 +486,9 @@ static int32_t SetMode (uint32_t mode) {
       val |= RTL8211_BMCR_SPEED_SEL_LSB;
       break;
     case ARM_ETH_PHY_SPEED_1G:
+#if (RTL8211_ADVERTISE_1000 == 0U)
+      return ARM_DRIVER_ERROR_UNSUPPORTED;
+#else
       if ((mode & ARM_ETH_PHY_DUPLEX_Msk) == ARM_ETH_PHY_DUPLEX_HALF) {
         return ARM_DRIVER_ERROR_UNSUPPORTED;
       }
@@ -486,7 +497,9 @@ static int32_t SetMode (uint32_t mode) {
          be force-set, so enable auto-negotiation for any gigabit request. */
       autoneg = ARM_ETH_PHY_AUTO_NEGOTIATE;
       val |= RTL8211_BMCR_SPEED_SEL_MSB;
+      PHY.flags |= PHY_FORCE_GIGABIT;
       break;
+#endif
     default:
       return ARM_DRIVER_ERROR_UNSUPPORTED;
   }

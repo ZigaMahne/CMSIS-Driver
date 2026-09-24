@@ -139,6 +139,7 @@
 /* PHY Driver State Flags */
 #define PHY_INIT                 0x01U  /* Driver initialized                */
 #define PHY_POWER                0x02U  /* Driver power is on                */
+#define PHY_FORCE_GIGABIT        0x04U  /* Force 1000BASE-T full duplex      */
 
 /* PHY Driver Control Structure */
 typedef struct phy_ctrl {
