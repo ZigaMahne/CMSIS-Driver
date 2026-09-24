@@ -234,10 +234,11 @@ static int32_t DisableEee (void) {
 }
 
 /**
-  \fn          int32_t ConfigureAutoNegotiation (void)
-  \brief       Program the RTL8211 advertisement registers.
+  \fn          int32_t ConfigureAutoNegotiation (PHY_AN_MODE mode)
+  \brief       Configure the RTL8211 auto-negotiation advertisement.
+  \param[in]   mode  Auto-negotiation advertisement mode.
 */
-static int32_t ConfigureAutoNegotiation (void) {
+static int32_t ConfigureAutoNegotiation (PHY_AN_MODE mode) {
   uint16_t val;
   int32_t  status;
 
@@ -246,16 +247,22 @@ static int32_t ConfigureAutoNegotiation (void) {
     return status;
   }
 
-  if ((PHY.flags & PHY_FORCE_GIGABIT) == 0U) {
-    val = RTL8211_ANAR_SELECTOR_802_3 |
-          RTL8211_ANAR_10BT_HD        |
-          RTL8211_ANAR_10BT_FD        |
-          RTL8211_ANAR_100BTX_HD      |
-          RTL8211_ANAR_100BTX_FD;
-  }
-  else {
-    /* Advertise no 10/100BASE-T capabilities. */
-    val = RTL8211_ANAR_SELECTOR_802_3;
+  switch (mode) {
+    case PHY_AN_MODE_ALL_SPEEDS:
+      val = RTL8211_ANAR_SELECTOR_802_3 |
+            RTL8211_ANAR_10BT_HD        |
+            RTL8211_ANAR_10BT_FD        |
+            RTL8211_ANAR_100BTX_HD      |
+            RTL8211_ANAR_100BTX_FD;
+      break;
+
+    case PHY_AN_MODE_GIGABIT_ONLY:
+      /* Advertise no 10/100BASE-T capabilities. */
+      val = RTL8211_ANAR_SELECTOR_802_3;
+      break;
+
+    default:
+      return ARM_DRIVER_ERROR_PARAMETER;
   }
 
   status = phy_write(RTL8211_ANAR, val);
@@ -414,7 +421,7 @@ static int32_t PowerControl (ARM_POWER_STATE state) {
          copper link is established (link LED on) regardless of how the MAC
          subsequently calls SetMode. Auto-negotiation is also the only valid
          way to bring up a 1000BASE-T link. */
-      status = ConfigureAutoNegotiation();
+      status = ConfigureAutoNegotiation(PHY_AN_MODE_ALL_SPEEDS);
       if (status != ARM_DRIVER_OK) {
         return status;
       }
@@ -470,14 +477,15 @@ static int32_t SetMode (uint32_t mode) {
   uint16_t val;
   uint32_t autoneg;
   int32_t  status;
+  PHY_AN_MODE an_mode;
 
   if ((PHY.flags & PHY_POWER) == 0U) {
     return ARM_DRIVER_ERROR;
   }
 
-  PHY.flags &= ~PHY_FORCE_GIGABIT;
   val     = PHY.bcr & RTL8211_BMCR_POWER_DOWN;
   autoneg = (mode & ARM_ETH_PHY_AUTO_NEGOTIATE);
+  an_mode = PHY_AN_MODE_ALL_SPEEDS;
 
   switch (mode & ARM_ETH_PHY_SPEED_Msk) {
     case ARM_ETH_PHY_SPEED_10M:
@@ -497,7 +505,7 @@ static int32_t SetMode (uint32_t mode) {
          be force-set, so enable auto-negotiation for any gigabit request. */
       autoneg = ARM_ETH_PHY_AUTO_NEGOTIATE;
       val |= RTL8211_BMCR_SPEED_SEL_MSB;
-      PHY.flags |= PHY_FORCE_GIGABIT;
+      an_mode = PHY_AN_MODE_GIGABIT_ONLY;
       break;
 #endif
     default:
@@ -530,7 +538,7 @@ static int32_t SetMode (uint32_t mode) {
   }
 
   if (autoneg != 0U) {
-    status = ConfigureAutoNegotiation();
+    status = ConfigureAutoNegotiation(an_mode);
     if (status != ARM_DRIVER_OK) {
       return status;
     }

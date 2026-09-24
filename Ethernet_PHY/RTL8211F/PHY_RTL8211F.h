@@ -139,7 +139,12 @@
 /* PHY Driver State Flags */
 #define PHY_INIT                 0x01U  /* Driver initialized                */
 #define PHY_POWER                0x02U  /* Driver power is on                */
-#define PHY_FORCE_GIGABIT        0x04U  /* Force 1000BASE-T full duplex      */
+
+/* PHY auto-negotiation advertisement modes */
+typedef enum {
+  PHY_AN_MODE_ALL_SPEEDS,               /* Advertise 10/100/1000BASE-T       */
+  PHY_AN_MODE_GIGABIT_ONLY              /* Advertise 1000BASE-T only         */
+} PHY_AN_MODE;
 
 /* PHY Driver Control Structure */
 typedef struct phy_ctrl {
